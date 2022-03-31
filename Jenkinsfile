@@ -52,7 +52,7 @@ ci_cpu = 'tlcpack/ci-cpu:v0.82'
 ci_wasm = 'tlcpack/ci-wasm:v0.72'
 ci_i386 = 'tlcpack/ci-i386:v0.75'
 ci_qemu = 'tlcpack/ci-qemu:v0.12'
-ci_arm = 'tlcpack/ci-arm:v0.08'
+ci_arm = 'tlcpack/ci-arm:20220331-055919-5cacecc0c'
 ci_hexagon = 'tlcpack/ci-hexagon:v0.02'
 // <--- End of regex-scanned config.
 
@@ -845,6 +845,29 @@ stage('Test') {
       }
     } else {
       Utils.markStageSkippedForConditional('frontend: CPU')
+    }
+  },
+  'frontend: aarch64': {
+    if (!skip_ci && is_docs_only_build != 1) {
+      node('ARM') {
+        ws("workspace/exec_${env.EXECUTOR_NUMBER}/tvm/ut-python-arm") {
+          try {
+            init_git()
+            unpack_lib('arm', tvm_multilib)
+            timeout(time: max_time, unit: 'MINUTES') {
+              ci_setup(ci_arm)
+              sh (
+                script: "${docker_run} ${ci_arm} ./tests/scripts/task_python_frontend_cpu.sh",
+                label: 'Run Python frontend tests',
+              )
+            }
+          } finally {
+            junit 'build/pytest-results/*.xml'
+          }
+        }
+      }
+    } else {
+      Utils.markStageSkippedForConditional('frontend: aarch64')
     }
   },
   'docs: GPU': {
